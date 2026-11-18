@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MyHashMap.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">hashmap-mutation</a> &gt; <a href="index.source.html" class="el_package">hashmap</a> &gt; <span class="el_source">MyHashMap.java</span></div><h1>MyHashMap.java</h1><pre class="source lang-java linenums">package hashmap;
+
+/**
+ * A simple hash map using separate chaining with automatic resizing.
+ *
+ *  - Null keys are NOT allowed (put/get/remove/containsKey throw NullPointerException).
+ *  - Null values ARE allowed.
+ *  - Initial capacity defaults to 16. Capacity always doubles on resize.
+ *  - Resize happens AFTER an insert when size / capacity exceeds the load factor (0.75).
+ *
+ * Likely bug spots:
+ *  1. indexFor(): negative hashCodes must not produce a negative bucket index.
+ *  2. put(): overwriting an existing key must replace the value and NOT increase size.
+ *  3. remove(): removing the head, middle and tail of a bucket chain are different code paths.
+ *  4. resize(): every entry must be rehashed with the NEW capacity; threshold uses &gt; not &gt;=.
+ */
+
+public class MyHashMap&lt;K, V&gt; {
+
+    static final int DEFAULT_CAPACITY = 16;
+    static final double LOAD_FACTOR = 0.75;
+
+    static class Node&lt;K, V&gt; {
+        final K key;
+        V value;
+        Node&lt;K, V&gt; next;
+
+<span class="fc" id="L28">        Node(K key, V value, Node&lt;K, V&gt; next) {</span>
+<span class="fc" id="L29">            this.key = key;</span>
+<span class="fc" id="L30">            this.value = value;</span>
+<span class="fc" id="L31">            this.next = next;</span>
+<span class="fc" id="L32">        }</span>
+    }
+
+    private Node&lt;K, V&gt;[] buckets;
+    private int size;
+
+    public MyHashMap() {
+<span class="fc" id="L39">        this(DEFAULT_CAPACITY);</span>
+<span class="fc" id="L40">    }</span>
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L43">    public MyHashMap(int initialCapacity) {</span>
+<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (initialCapacity &lt;= 0) {</span>
+<span class="fc" id="L45">            throw new IllegalArgumentException(&quot;capacity must be positive: &quot; + initialCapacity);</span>
+        }
+<span class="fc" id="L47">        this.buckets = (Node&lt;K, V&gt;[]) new Node[initialCapacity];</span>
+<span class="fc" id="L48">        this.size = 0;</span>
+<span class="fc" id="L49">    }</span>
+
+    /** Maps key to value. Returns the previous value, or null if there was none. */
+    public V put(K key, V value) {
+<span class="fc" id="L53">        requireNonNullKey(key);</span>
+<span class="fc" id="L54">        int index = indexFor(key, buckets.length);</span>
+
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        for (Node&lt;K, V&gt; n = buckets[index]; n != null; n = n.next) {</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            if (n.key.equals(key)) {</span>
+<span class="fc" id="L58">                V old = n.value;</span>
+<span class="fc" id="L59">                n.value = value;</span>
+<span class="fc" id="L60">                return old;</span>
+            }
+        }
+
+<span class="fc" id="L64">        buckets[index] = new Node&lt;&gt;(key, value, buckets[index]);</span>
+<span class="fc" id="L65">        size++;</span>
+
+<span class="fc bfc" id="L67" title="All 2 branches covered.">        if ((double) size / buckets.length &gt; LOAD_FACTOR) {</span>
+<span class="fc" id="L68">            resize();</span>
+        }
+<span class="fc" id="L70">        return null;</span>
+    }
+
+    public V get(K key) {
+<span class="fc" id="L74">        requireNonNullKey(key);</span>
+<span class="fc" id="L75">        Node&lt;K, V&gt; n = findNode(key);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        return n == null ? null : n.value;</span>
+    }
+
+    public boolean containsKey(K key) {
+<span class="fc" id="L80">        requireNonNullKey(key);</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        return findNode(key) != null;</span>
+    }
+
+    /** Removes the mapping for key. Returns the removed value, or null if absent. */
+    public V remove(K key) {
+<span class="fc" id="L86">        requireNonNullKey(key);</span>
+<span class="fc" id="L87">        int index = indexFor(key, buckets.length);</span>
+
+<span class="fc" id="L89">        Node&lt;K, V&gt; prev = null;</span>
+<span class="fc" id="L90">        Node&lt;K, V&gt; curr = buckets[index];</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        while (curr != null) {</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">            if (curr.key.equals(key)) {</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                if (prev == null) {</span>
+<span class="fc" id="L94">                    buckets[index] = curr.next; // removing head of chain</span>
+<span class="fc" id="L95">                } else {</span>
+<span class="fc" id="L96">                    prev.next = curr.next;      // removing middle or tail</span>
+                }
+<span class="fc" id="L98">                size--;</span>
+<span class="fc" id="L99">                return curr.value;</span>
+            }
+<span class="fc" id="L101">            prev = curr;</span>
+<span class="fc" id="L102">            curr = curr.next;</span>
+        }
+<span class="fc" id="L104">        return null;</span>
+    }
+
+    public int size() {
+<span class="fc" id="L108">        return size;</span>
+    }
+
+    public boolean isEmpty() {
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        return size == 0;</span>
+    }
+
+    public void clear() {
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        for (int i = 0; i &lt; buckets.length; i++) {</span>
+<span class="fc" id="L117">            buckets[i] = null;</span>
+        }
+<span class="fc" id="L119">        size = 0;</span>
+<span class="fc" id="L120">    }</span>
+
+    /** Current number of buckets (package-private so tests can observe resizing). */
+    int capacity() {
+<span class="fc" id="L124">        return buckets.length;</span>
+    }
+
+    // ---------------------------------------------------------------- internals
+
+    private Node&lt;K, V&gt; findNode(K key) {
+<span class="fc" id="L130">        int index = indexFor(key, buckets.length);</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">        for (Node&lt;K, V&gt; n = buckets[index]; n != null; n = n.next) {</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">            if (n.key.equals(key)) {</span>
+<span class="fc" id="L133">                return n;</span>
+            }
+        }
+<span class="fc" id="L136">        return null;</span>
+    }
+
+    /** Math.floorMod keeps the index non-negative even for negative hash codes. */
+    static int indexFor(Object key, int capacity) {
+<span class="fc" id="L141">        return Math.floorMod(key.hashCode(), capacity);</span>
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private void resize() {
+<span class="fc" id="L146">        Node&lt;K, V&gt;[] old = buckets;</span>
+<span class="fc" id="L147">        Node&lt;K, V&gt;[] bigger = (Node&lt;K, V&gt;[]) new Node[old.length * 2];</span>
+
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        for (Node&lt;K, V&gt; head : old) {</span>
+<span class="fc" id="L150">            Node&lt;K, V&gt; n = head;</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">            while (n != null) {</span>
+<span class="fc" id="L152">                Node&lt;K, V&gt; next = n.next;</span>
+<span class="fc" id="L153">                int index = indexFor(n.key, bigger.length);</span>
+<span class="fc" id="L154">                n.next = bigger[index];</span>
+<span class="fc" id="L155">                bigger[index] = n;</span>
+<span class="fc" id="L156">                n = next;</span>
+            }
+        }
+<span class="fc" id="L159">        buckets = bigger;</span>
+<span class="fc" id="L160">    }</span>
+
+    private static void requireNonNullKey(Object key) {
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (key == null) {</span>
+<span class="fc" id="L164">            throw new NullPointerException(&quot;null keys are not supported&quot;);</span>
+        }
+<span class="fc" id="L166">    }</span>
+
+    /**
+     * Invariant checker used by tests. Verifies:
+     *  - the number of nodes across all buckets equals size()
+     *  - every node sits in the bucket its hash maps to
+     *  - no duplicate keys exist
+     *  - the load factor is respected after every operation
+     */
+    void checkInvariants() {
+<span class="fc" id="L176">        int count = 0;</span>
+<span class="fc" id="L177">        java.util.Set&lt;K&gt; seen = new java.util.HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        for (int i = 0; i &lt; buckets.length; i++) {</span>
+<span class="fc bfc" id="L179" title="All 2 branches covered.">            for (Node&lt;K, V&gt; n = buckets[i]; n != null; n = n.next) {</span>
+<span class="fc" id="L180">                count++;</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">                if (indexFor(n.key, buckets.length) != i) {</span>
+<span class="nc" id="L182">                    throw new AssertionError(&quot;key &quot; + n.key + &quot; in wrong bucket &quot; + i);</span>
+                }
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">                if (!seen.add(n.key)) {</span>
+<span class="nc" id="L185">                    throw new AssertionError(&quot;duplicate key &quot; + n.key);</span>
+                }
+            }
+        }
+<span class="pc bpc" id="L189" title="1 of 2 branches missed.">        if (count != size) {</span>
+<span class="nc" id="L190">            throw new AssertionError(&quot;size field &quot; + size + &quot; but found &quot; + count + &quot; nodes&quot;);</span>
+        }
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">        if ((double) size / buckets.length &gt; LOAD_FACTOR) {</span>
+<span class="nc" id="L193">            throw new AssertionError(&quot;load factor exceeded: &quot; + size + &quot;/&quot; + buckets.length);</span>
+        }
+<span class="fc" id="L195">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
