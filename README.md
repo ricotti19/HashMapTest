@@ -2,6 +2,8 @@
 
 Separate-chaining hash map with resizing, tested with JUnit 5, measured with JaCoCo (coverage) and PIT (mutation testing).
 
+Group: Shriya Shenoj, Sakethram Vedula, Ethan Diep, Melissa Mejia, Soham Kulkarni
+
 ## Setup (needs Java 17+ and Maven)
 
 ```
@@ -26,10 +28,3 @@ Open the folder in IntelliJ (File > Open > select `pom.xml` > Open as Project) o
 - `src/test/java/hashmap/MyHashMapStrengthenedTest.java` : edge cases, invariants, randomized oracle test
 - `PROMPT.md` : the AI prompt to show in class
 - `DEMO_SCRIPT.md` : 5-minute walkthrough with timings
-
-## IMPORTANT: do these before Thursday
-
-1. Run all three commands once so Maven downloads everything (needs internet).
-2. To get a clear before/after for PIT: temporarily move `MyHashMapStrengthenedTest.java` out of `src/test`, run PIT (baseline score and survivors), then put it back and rerun (improved score).
-3. Write down the real numbers in DEMO_SCRIPT.md. Do not quote numbers you have not seen on your own screen.
-4. Generate your own tests with the prompt in PROMPT.md and compare them to the baseline. The baseline file here is a starting point, not a substitute for your group's own tool run.
