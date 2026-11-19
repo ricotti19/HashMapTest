@@ -23,8 +23,7 @@ Open the folder in IntelliJ (File > Open > select `pom.xml` > Open as Project) o
 
 ## Files
 
-- `src/main/java/hashmap/MyHashMap.java` : the data structure (the code you show for "The problem")
+- `src/main/java/hashmap/MyHashMap.java` : the data structure (the code for "The problem")
 - `src/test/java/hashmap/MyHashMapGeneratedTest.java` : baseline, "as generated" style tests
 - `src/test/java/hashmap/MyHashMapStrengthenedTest.java` : edge cases, invariants, randomized oracle test
 - `PROMPT.md` : the AI prompt to show in class
-- `DEMO_SCRIPT.md` : 5-minute walkthrough with timings
